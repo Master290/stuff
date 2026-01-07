@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>####</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      color: #0f0;
+      font-family: monospace;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      height: 100%;
+      border-collapse: collapse;
+      position: relative;
+    }
+
+    td {
+      border: 1px solid #0f0;
+      font-size: 11px;
+      vertical-align: top;
+      padding: 4px;
+      position: absolute;
+      transition: left 0.3s linear, top 0.3s linear, opacity 2s linear;
+    }
+
+    pre { margin: 0; }
+
+    .healing {
+      color: #00ff88;
+    }
+
+    .dead {
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+
+<table id="grid">
+  <tr>
+    <td><pre>░░░░░░░░</pre></td>
+    <td><pre>░░░░░░░░</pre></td>
+    <td><pre>░░░░░░░░</pre></td>
+  </tr>
+  <tr>
+    <td><pre>░░░░░░░░</pre></td>
+    <td><pre id="core">░░░░░░░░</pre></td>
+    <td><pre>░░░░░░░░</pre></td>
+  </tr>
+  <tr>
+    <td><pre>░░░░░░░░</pre></td>
+    <td><pre>░░░░░░░░</pre></td>
+    <td><pre>░░░░░░░░</pre></td>
+  </tr>
+</table>
+
+<script>
+  var chars = '<>/\\|01▓▒░';
+  var cells = [];
+  var decayRate = 1500;
+  var visitCount = parseInt(localStorage.getItem('visits') || '0', 10) + 1;
+  localStorage.setItem('visits', visitCount);
+
+  decayRate = Math.max(300, decayRate - visitCount * 200);
+
+  var sessionKey = 'session_' + Date.now() + '_' + Math.random();
+  sessionStorage.setItem('alive', sessionKey);
+
+  function collectCells() {
+    var tds = document.getElementsByTagName('td');
+    for (var i = 0; i < tds.length; i++) {
+      var td = tds[i];
+      td.style.left = Math.random() * (window.innerWidth - 100) + 'px';
+      td.style.top = Math.random() * (window.innerHeight - 50) + 'px';
+      cells.push(td);
+    }
+  }
+
+  function corruptText(el) {
+    var out = '';
+    for (var i = 0; i < 60; i++) {
+      out += chars.charAt(Math.floor(Math.random() * chars.length));
+      if (Math.random() > 0.85) out += '\n';
+    }
+    el.textContent = out;
+  }
+
+  function rewriteHTML() {
+    var html = document.documentElement.innerHTML;
+    html = html.replace(/</g, chars.charAt(Math.floor(Math.random()*chars.length)));
+    document.documentElement.innerHTML = html;
+  }
+
+  function decay() {
+    if (cells.length === 0) return;
+    var i = Math.floor(Math.random() * cells.length);
+    var cell = cells[i];
+    if (!cell) return;
+
+    var pre = cell.querySelector('pre');
+    if (pre) corruptText(pre);
+
+    cell.classList.add('dead');
+    cells.splice(i, 1);
+
+    if (Math.random() > 0.7) rewriteHTML();
+  }
+
+  function heal() {
+    var core = document.getElementById('core');
+    if (core) {
+      core.textContent = '░░░░░░░░';
+      core.className = 'healing';
+      setTimeout(function () {
+        core.textContent = '░░░░░░░░';
+        core.className = '';
+      }, 2000);
+    }
+  }
+
+  document.addEventListener('mousemove', function (e) {
+    for (var i = 0; i < cells.length; i++) {
+      var rect = cells[i].getBoundingClientRect();
+      var dx = rect.left - e.clientX;
+      var dy = rect.top - e.clientY;
+      if (Math.abs(dx) < 120 && Math.abs(dy) < 80) {
+        cells[i].style.left = rect.left + dx * 0.2 + 'px';
+        cells[i].style.top = rect.top + dy * 0.2 + 'px';
+      }
+    }
+  });
+
+  document.addEventListener('click', heal);
+
+  window.addEventListener('beforeunload', function () {
+    sessionStorage.removeItem('alive');
+  });
+
+  collectCells();
+  setInterval(decay, decayRate);
+</script>
+
+</body>
+</html>
